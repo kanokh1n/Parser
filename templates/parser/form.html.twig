@@ -1,0 +1,10 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1>Parser Form</h1>
+
+    {{ form_start(form) }}
+    {{ form_row(form.url) }}
+    {{ form_widget(form.submit, { 'label': 'Submit' }) }}
+    {{ form_end(form) }}
+{% endblock %}

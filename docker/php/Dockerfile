@@ -14,6 +14,10 @@ RUN if [ ${INSTALL_XDEBUG} = true ]; \
 COPY ./docker/php/xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini
 
 # Postgres
+
+RUN apk add --no-cache mysql-client libzip-dev && \
+    docker-php-ext-install pdo_mysql zip
+
 RUN apk add --no-cache libpq-dev && docker-php-ext-install pdo_pgsql
 
 # Configure non-root user.
