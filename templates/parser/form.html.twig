@@ -1,10 +1,13 @@
 {% extends 'base.html.twig' %}
 
-{% block body %}
-    <h1>Parser Form</h1>
+{% block title %}Сбор данных о товарах{% endblock %}
 
-    {{ form_start(form) }}
-    {{ form_row(form.url) }}
-    {{ form_widget(form.submit, { 'label': 'Submit' }) }}
+{% block body %}
+    <h1>Сбор данных о товарах</h1>
+
+    {{ form_start(form, {'action': path('parser_collect'), 'method': 'POST'}) }}
+    {{ form_row(form.url, {'value': url ?? ''}) }}
+    {{ form_row(form.pageCount, {'value': pageCount ?? ''}) }}
+    {{ form_row(form.submit) }}
     {{ form_end(form) }}
 {% endblock %}

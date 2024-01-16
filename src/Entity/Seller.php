@@ -10,45 +10,30 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: SellerRepository::class)]
 class Seller
 {
+
+    public function __toString()
+    {
+        return $this->getName(); // Замените 'getName()' на имя метода, возвращающего нужное поле
+    }
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column]
-    private ?int $seller_id = null;
-
     #[ORM\Column(length: 255)]
     private ?string $name = null;
 
-    #[ORM\OneToMany(mappedBy: 'seller_id', targetEntity: Product::class, orphanRemoval: true)]
-    private Collection $product_id;
+    #[ORM\OneToMany(mappedBy: 'seller', targetEntity: Product::class, orphanRemoval: true)]
+    private Collection $products;
 
     public function __construct()
     {
-        $this->product_id = new ArrayCollection();
-    }
-
-    public function __toString(): string
-    {
-        return $this->name;
+        $this->products = new ArrayCollection();
     }
 
     public function getId(): ?int
     {
         return $this->id;
-    }
-
-    public function getSellerId(): ?int
-    {
-        return $this->seller_id;
-    }
-
-    public function setSellerId(int $seller_id): static
-    {
-        $this->seller_id = $seller_id;
-
-        return $this;
     }
 
     public function getName(): ?string
@@ -66,27 +51,27 @@ class Seller
     /**
      * @return Collection<int, Product>
      */
-    public function getProductId(): Collection
+    public function getProducts(): Collection
     {
-        return $this->product_id;
+        return $this->products;
     }
 
-    public function addProductId(Product $productId): static
+    public function addProduct(Product $product): static
     {
-        if (!$this->product_id->contains($productId)) {
-            $this->product_id->add($productId);
-            $productId->setSellerId($this);
+        if (!$this->products->contains($product)) {
+            $this->products->add($product);
+            $product->setSeller($this);
         }
 
         return $this;
     }
 
-    public function removeProductId(Product $productId): static
+    public function removeProduct(Product $product): static
     {
-        if ($this->product_id->removeElement($productId)) {
+        if ($this->products->removeElement($product)) {
             // set the owning side to null (unless already changed)
-            if ($productId->getSellerId() === $this) {
-                $productId->setSellerId(null);
+            if ($product->getSeller() === $this) {
+                $product->setSeller(null);
             }
         }
 

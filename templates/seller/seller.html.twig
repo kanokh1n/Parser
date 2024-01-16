@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Seller Details{% endblock %}
+
+{% block body %}
+    <h1>Seller Details</h1>
+
+    <dl>
+        <dt>ID:</dt>
+        <dd>{{ seller.id }}</dd>
+
+        <dt>Name:</dt>
+        <dd>{{ seller.name }}</dd>
+
+        <dt>Products Count:</dt>
+        <dd>{{ productCount }}</dd>
+    </dl>
+{% endblock %}

@@ -1,9 +1,8 @@
 <?php
-
 namespace App\Controller;
 
-
-use App\Form\ParserType;
+use App\Service\ParserService;
+use App\Form\UrlFormType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,46 +10,59 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class ParserController extends AbstractController
 {
-    #[Route('/parser', name: 'parser_form')]
+    private $parserService;
+
+    public function __construct(ParserService $parserService)
+    {
+        $this->parserService = $parserService;
+    }
+
+    #[Route('/parser/form', name: 'parser_form')]
     public function form(): Response
     {
-        $form = $this->createForm(ParserType::class);
+        $form = $this->createForm(UrlFormType::class);
 
         return $this->render('parser/form.html.twig', [
             'form' => $form->createView(),
         ]);
     }
 
-    #[Route('/parser', name: 'parser_collect')]
+    #[Route('/parser/collect', name: 'parser_collect')]
     public function collectData(Request $request): Response
     {
-        $form = $this->createForm(ParserType::class);
+        $url = '';
+        $pageCount = 0;
+
+        $form = $this->createForm(UrlFormType::class);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-
             $url = $form->get('url')->getData();
+            $pageCount = $form->get('pageCount')->getData();
 
-            // Далее передайте URL в метод сервиса ParserService для обработки данных
-            // Реализация этого метода останется за вами
 
-            // Пример:
-            // $parserService = $this->get(ParserService::class);
-            // $result = $parserService->parseData($url);
+            $result = $this->parserService->parseData($url, $pageCount);
 
-            // Вывод статистики по собранным данным
-            $collectedCount = 10; // Замените на реальное значение
-            $savedCount = 8; // Замените на реальное значение
+            $collectedCount = $result['collectedCount'] ?? 0;
+            $savedCount = $result['savedCount'] ?? 0;
 
+            // Возвращаем форму вместе с результатами и введенными значениями
             return $this->render('parser/result.html.twig', [
                 'collectedCount' => $collectedCount,
                 'savedCount' => $savedCount,
+                'form' => $form->createView(),
+                'url' => $url, // Передаем URL в шаблон
+                'pageCount' => $pageCount, // Передаем pageCount в шаблон
+
             ]);
+
         }
 
-        // Если форма не валидна, возвращаем пользователя на страницу с формой
+        // Если форма не валидна, возвращаем форму для повторного ввода
         return $this->render('parser/form.html.twig', [
             'form' => $form->createView(),
+            'url' => $url,
+            'pageCount' => $pageCount,
         ]);
     }
 }

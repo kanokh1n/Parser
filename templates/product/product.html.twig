@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Product Details{% endblock %}
+
+{% block body %}
+    <h1>Product Details</h1>
+
+    <dl>
+        <dt>ID:</dt>
+        <dd>{{ product.id }}</dd>
+
+        <dt>Name:</dt>
+        <dd>{{ product.name }}</dd>
+
+        <dt>Price:</dt>
+        <dd>${{ product.price }}</dd>
+
+        <dt>Store Link:</dt>
+        <dd><a href="{{ product.getStoreLink() }}" target="_blank">Store Link</a></dd>
+
+        <dt>Seller:</dt>
+        <dd>{{ product.seller.name }}</dd>
+    </dl>
+{% endblock %}

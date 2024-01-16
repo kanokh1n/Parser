@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Seller List{% endblock %}
+
+{% block body %}
+    <h1>Seller List</h1>
+
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Products Count</th>
+            <th>Details</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for seller in sellers %}
+            <tr>
+                <td>{{ seller.id }}</td>
+                <td>{{ seller.name }}</td>
+                <td>{{ seller.products|length }}</td>
+                <td><a href="{{ path('seller_detail', {'id': seller.id}) }}">Details</a></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
