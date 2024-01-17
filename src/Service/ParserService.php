@@ -86,10 +86,6 @@ class ParserService
     {
         $products = [];
 
-        $wrapperCount = $crawler->filter('div.product-card__wrapper')->count();
-
-        dump("Found $wrapperCount");
-
         $crawler->filter('.ix.i0x')->each(function ($node) use (&$products) {
 
             $name = $node->filter('tsBody500Medium')->text();

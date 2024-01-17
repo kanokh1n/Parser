@@ -13,7 +13,7 @@ class Seller
 
     public function __toString()
     {
-        return $this->getName(); // Замените 'getName()' на имя метода, возвращающего нужное поле
+        return $this->getName();
     }
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -69,7 +69,7 @@ class Seller
     public function removeProduct(Product $product): static
     {
         if ($this->products->removeElement($product)) {
-            // set the owning side to null (unless already changed)
+
             if ($product->getSeller() === $this) {
                 $product->setSeller(null);
             }

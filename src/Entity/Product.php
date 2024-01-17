@@ -126,9 +126,4 @@ class Product
 
         return $this;
     }
-
-    public function getStoreLink(): ?string
-    {
-        return 'https://example.com/product/' . $this->getSku();
-    }
 }
