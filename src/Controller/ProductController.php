@@ -39,27 +39,7 @@ class ProductController extends AbstractController
         ]);
     }
 
-    #[Route('/sellers', name: 'seller_list')]
-    public function sellers(EntityManagerInterface $entityManager): Response
-    {
-        $sellers = $entityManager->getRepository(Seller::class)->findAll();
 
-        return $this->render('seller/sellers.html.twig', [
-            'sellers' => $sellers,
-        ]);
-    }
-
-    #[Route('/sellers/{id}', name: 'seller_detail')]
-    public function seller($id, EntityManagerInterface $entityManager)
-    {
-        $seller = $entityManager->getRepository(Seller::class)->find($id);
-        $productCount = count($seller->getProducts());
-
-        return $this->render('seller/seller.html.twig', [
-            'seller' => $seller,
-            'productCount' => $productCount,
-        ]);
-    }
 
 
 }

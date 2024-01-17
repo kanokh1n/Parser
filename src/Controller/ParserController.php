@@ -41,24 +41,22 @@ class ParserController extends AbstractController
             $pageCount = $form->get('pageCount')->getData();
 
 
-            $result = $this->parserService->parseData($url, $pageCount);
+            $result = $this->parserService->collect($url, $pageCount);
 
             $collectedCount = $result['collectedCount'] ?? 0;
             $savedCount = $result['savedCount'] ?? 0;
 
-            // Возвращаем форму вместе с результатами и введенными значениями
+
             return $this->render('parser/result.html.twig', [
                 'collectedCount' => $collectedCount,
                 'savedCount' => $savedCount,
                 'form' => $form->createView(),
-                'url' => $url, // Передаем URL в шаблон
-                'pageCount' => $pageCount, // Передаем pageCount в шаблон
-
+                'url' => $url,
+                'pageCount' => $pageCount,
             ]);
-
         }
 
-        // Если форма не валидна, возвращаем форму для повторного ввода
+
         return $this->render('parser/form.html.twig', [
             'form' => $form->createView(),
             'url' => $url,

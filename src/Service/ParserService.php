@@ -1,120 +1,160 @@
 <?php
 
+
 namespace App\Service;
 
-use GuzzleHttp\Client;
-use React\EventLoop\Loop;
-use React\Promise\Promise;
+use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
+use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\CssSelector\CssSelectorConverter;
 use App\Entity\Product;
 use App\Entity\Seller;
 use Doctrine\ORM\EntityManagerInterface;
 
 class ParserService
 {
-    private $loop;
     private $entityManager;
 
     public function __construct(EntityManagerInterface $entityManager)
     {
-        $this->loop = Loop::get();
         $this->entityManager = $entityManager;
     }
 
-    private function asyncRequest(Client $client, $url): Promise
+    public function collect($url, $pageCount)
     {
-        $deferred = new \React\Promise\Deferred();
+        $collectedCount = 0;
+        $savedCount = 0;
 
-        $client->getAsync($url)->then(
-            function ($response) use ($deferred) {
-                $data = json_decode($response->getBody(), true);
-                $deferred->resolve($data);
-            },
-            function ($error) use ($deferred) {
-                $deferred->reject($error);
-            }
-        );
-
-        return $deferred->promise();
-    }
-
-    public function parseData($url, $pageCount = null)
-    {
-        $client = new Client([
-            'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36',
-                'Content-Type' => 'text/html; charset=UTF-8',
-                'Accept' => 'application/json',
-                'Accept-Language' => 'en-US,en;q=0.9',
-            ],
-        ]);
-        $collectedCount = 1;
-        $savedCount = 1;
-
-        $promises = [];
 
         for ($i = 1; $i <= $pageCount; $i++) {
-            $promises[] = $this->asyncRequest($client, $url . '?page=' . $i);
-        }
+            $currentUrl = $url . '?' . http_build_query(['page' => $i]);
+            $crawler = $this->getCrawler($currentUrl);
 
-        $allPromises = \React\Promise\all($promises);
 
-        $allPromises->then(
-            function ($results) use (&$collectedCount, &$savedCount) {
-                foreach ($results as $result) {
-                    $this->saveProduct($result);
-                    $collectedCount += count($result);
-                    $savedCount += count($result);
+            if (!$crawler) {
+                break;
+            }
 
-                }
-            },
-            function ($error) {
+            $products = $this->parseProducts($crawler);
+
+            if (empty($products)) {
+                break;
+            }
+
+            foreach ($products as $productData) {
+                $this->saveProduct($productData);
+
+                $collectedCount++;
+                $savedCount++;
 
             }
-        );
+        }
 
-        return [
-            'collectedCount' => $collectedCount,
-            'savedCount' => $savedCount,
-        ];
+        return ['collectedCount' => $collectedCount,
+                'savedCount' => $savedCount];
     }
 
-    private function saveProduct($data)
+    private function getCrawler($url)
     {
-        $productRepository = $this->entityManager->getRepository(Product::class);
+        $headers = [
+            'User_Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ];
+        try {
+            $client = HttpClient::create();
 
-        foreach ($data as $item) {
+            $response = $client->request('GET', $url,[
+                'headers' => $headers,
+            ]);
 
-            $product = new Product();
-            preg_match('/\/(\d+)\//', $item['i2u tile-hover-target'], $matches);
-            $sku = !empty($matches[1]) ? $matches[1] : null;
 
-            $product->setSku($sku);
-            $product->setPrice((int)preg_replace('/[^\d]/', '',$item['c3125-a1 tsHeadline500Medium c3125-c0']));
-            $product->setName($item['tsBody500Medium']);
-            $product->setReviewsCount((int)filter_var($item['ga25-a2 tsBodyControl400Small'], FILTER_SANITIZE_NUMBER_INT));
-            $product->setSeller($this->getOrCreateSeller($item['s1j']));
-            $product->setCreatedDateValue();
-            $product->setUpdatedDateValue();
+            if ($response->getStatusCode() !== 200) {
+                return null;
+            }
 
-            $this->entityManager->persist($product);
-            $this->entityManager->flush();
+            $content = $response->getContent();
+            $crawler = new Crawler($content, $url);
+
+            return $crawler;
+        } catch (ExceptionInterface $e) {
+            // Log exception
+
+            return null;
         }
     }
 
-    private function getOrCreateSeller($sellerName)
+    private function parseProducts(Crawler $crawler)
     {
+        $products = [];
+
+        $wrapperCount = $crawler->filter('div.product-card__wrapper')->count();
+
+        dump("Found $wrapperCount");
+
+        $crawler->filter('.ix.i0x')->each(function ($node) use (&$products) {
+
+            $name = $node->filter('tsBody500Medium')->text();
+
+            $seller = 'seller';
+
+            $price = $node->filter('.c3125-a1 tsHeadline500Medium c3125-c0')->text();
+
+            $reviewsCount = 10;
+
+            $href = $node->filterXPath('//a')->attr('href');
+            preg_match('/(\d+)(?=\?|$)/', $href, $matches);
+            $sku = $matches[1] ?? null;
+
+            $products[] = [
+                'price' => $price,
+                'name' => $name,
+                'reviews_count' => $reviewsCount,
+                'seller' => $seller,
+                'sku' => $sku,
+            ];
+
+        });
+
+        return $products;
+    }
+
+    private function saveProduct($productData)
+    {
+        $productRepository = $this->entityManager->getRepository(Product::class);
         $sellerRepository = $this->entityManager->getRepository(Seller::class);
 
-        $seller = $sellerRepository->findOneBy(['name' => $sellerName]);
+
+        $seller = $sellerRepository->findOneBy(['name' => $productData['seller']]);
 
         if (!$seller) {
             $seller = new Seller();
-            $seller->setName($sellerName);
-
+            $seller->setName($productData['seller']);
             $this->entityManager->persist($seller);
             $this->entityManager->flush();
         }
 
-        return $seller;
+
+        $product = $productRepository->findOneBy(['sku' => $productData['sku']]);
+
+        if ($product) {
+
+            $product->setPrice($productData['price']);
+            $product->setName($productData['name']);
+            $product->setReviewsCount($productData['reviews_count']);
+            $product->setSeller($seller);
+            $product->setUpdatedDateValue();
+        } else {
+
+            $product = new Product();
+            $product->setSku($productData['sku']);
+            $product->setPrice($productData['price']);
+            $product->setName($productData['name']);
+            $product->setReviewsCount($productData['reviews_count']);
+            $product->setSeller($seller);
+            $product->setCreatedDateValue();
+            $product->setUpdatedDateValue();
+            $this->entityManager->persist($product);
+        }
+
+        $this->entityManager->flush();
     }
 }
