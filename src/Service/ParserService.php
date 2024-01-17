@@ -76,7 +76,7 @@ class ParserService
 
             return $crawler;
         } catch (ExceptionInterface $e) {
-            // Log exception
+
 
             return null;
         }
